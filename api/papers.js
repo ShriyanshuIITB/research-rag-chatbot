@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   // Get all papers
   const { data, error } = await supabase
     .from('papers')
-    .select('id, title, description, created_at')
+    .select('id, title, description, professor_name, institution, created_at')
     .order('created_at', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
