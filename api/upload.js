@@ -31,6 +31,7 @@ export default async function handler(req, res) {
     const description = fields.description?.[0] || '';
     const enableContext = fields.enableContext?.[0] === 'true';
     const quickQuestions = JSON.parse(fields.quickQuestions?.[0] || '[]');
+    const professorId = fields.professorId?.[0] || null;
     const profName = fields.profName?.[0] || '';
     const institution = fields.institution?.[0] || '';
 
@@ -50,7 +51,8 @@ export default async function handler(req, res) {
         quick_questions: quickQuestions,
         processed: false,
         professor_name: profName,
-        institution: institution
+        institution: institution,
+        professor_id: professorId
       })
       .select()
       .single();
