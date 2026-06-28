@@ -30,18 +30,29 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { message, paperId } = req.body;
+    const { message, paperId, conversationHistory } = req.body;
 
+    // Step 1: Get embedding for the question
     const embedding = await getEmbedding(message);
 
-    const { data: chunks } = await supabase.rpc('match_chunks', {
+    // Step 2: Retrieve top 10 most relevant chunks
+    const { data: chunks, error: chunkError } = await supabase.rpc('match_chunks', {
       query_embedding: embedding,
       match_paper_id: paperId,
-      match_count: 5
+      match_count: 10
     });
 
-    const context = chunks.map(c => c.content).join('\n\n');
+    if (chunkError) throw new Error(chunkError.message);
 
+    // Step 3: Build rich context with chunk numbering
+    const context = chunks
+      .map((c, i) => `[Section ${i + 1}]\n${c.content}`)
+      .join('\n\n---\n\n');
+
+    // Step 4: Build conversation history for multi-turn
+    const history = conversationHistory || [];
+
+    // Step 5: Call Groq with deep reasoning prompt
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -50,29 +61,55 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        max_tokens: 1000,
+        max_tokens: 2000,
+        temperature: 0.3,
         messages: [
           {
             role: 'system',
-            content: `You are a strict research assistant. Follow these rules absolutely:
-1. Answer ONLY using the exact text provided in CONTEXT below.
-2. If the answer is not clearly stated in CONTEXT, say exactly: "This specific information is not available in the retrieved sections of the paper."
-3. Never guess, infer, or fill gaps with outside knowledge.
-4. For numbers, formulas, and statistics — quote them exactly as they appear.
-5. If a formula appears incomplete or unclear, say so honestly.
+            content: `You are a world-class research analyst and domain expert who has deeply studied the research paper provided below. You think rigorously, reason carefully, and give precise, actionable answers.
 
-CONTEXT:
-${context}`
+YOUR APPROACH:
+- You do not just quote the paper. You REASON from it like a domain expert.
+- You apply the paper's findings, equations, methodology, and conclusions to answer the user's specific question.
+- If the user provides their context (district, budget, population), you tailor your answer specifically to their situation using the paper's framework.
+- You think step by step — identify what the user actually needs, find the relevant findings, apply the logic, give a clear answer.
+- You cite specific numbers, formulas, and findings from the paper to back your reasoning.
+- You distinguish between what the paper directly states vs what you are inferring from its framework.
+- If something is genuinely not covered in the paper, you say so clearly and honestly.
+
+YOUR OUTPUT FORMAT:
+- Start with a direct answer to the question
+- Then explain the reasoning using paper's findings
+- Use specific numbers and data points from the paper
+- End with a practical recommendation if applicable
+- Keep it clear, structured, and actionable
+
+RESEARCH PAPER CONTEXT (10 most relevant sections):
+${context}
+
+Remember: You are not a search engine returning chunks. You are a domain expert who has internalized this research and can apply it to real-world problems.`
           },
-          { role: 'user', content: message }
+          ...history,
+          {
+            role: 'user',
+            content: message
+          }
         ]
       })
     });
 
     const data = await response.json();
-    res.status(200).json({ reply: data.choices?.[0]?.message?.content || 'No response received.' });
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Groq API error');
+    }
+
+    const reply = data.choices?.[0]?.message?.content || 'No response received.';
+
+    res.status(200).json({ reply });
 
   } catch(err) {
+    console.error('Chat error:', err);
     res.status(500).json({ error: 'API call failed', detail: err.message });
   }
 }
