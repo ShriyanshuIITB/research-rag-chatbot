@@ -225,6 +225,7 @@
 
 <script>
   let paperId = null;
+  let conversationHistory = [];
   let paperData = null;
 
   async function init() {
@@ -319,6 +320,13 @@
     div.innerHTML = `<div class="message-content">${content.replace(/\n/g, '<br>')}</div>`;
     area.appendChild(div);
     area.scrollTop = area.scrollHeight;
+    if (content !== 'Thinking...') {
+      conversationHistory.push({
+        role: role === 'user' ? 'user' : 'assistant',
+        content
+      });
+    }
+  }
   }
 
   function removeLastMessage() {
