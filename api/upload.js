@@ -2,7 +2,6 @@ import formidable from 'formidable';
 import fs from 'fs';
 import pdfParse from 'pdf-parse';
 import { createClient } from '@supabase/supabase-js';
-import Groq from 'groq-sdk';
 
 export const config = { api: { bodyParser: false } };
 
@@ -10,8 +9,6 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 function chunkText(text, size = 150, overlap = 30) {
   const words = text.split(' ');
@@ -45,7 +42,6 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Password check
   const auth = req.headers.authorization;
   if (auth !== `Bearer ${process.env.ADMIN_PASSWORD}`) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -56,20 +52,28 @@ export default async function handler(req, res) {
 
   const file = files.pdf[0];
   const title = fields.title[0];
+  const description = fields.description?.[0] || '';
+  const enableContext = fields.enableContext?.[0] === 'true';
+  const quickQuestions = JSON.parse(fields.quickQuestions?.[0] || '[]');
+
   const buffer = fs.readFileSync(file.filepath);
   const pdf = await pdfParse(buffer);
   const text = pdf.text;
 
-  // Save paper to database
   const { data: paper, error } = await supabase
     .from('papers')
-    .insert({ title, filename: file.originalFilename })
+    .insert({
+      title,
+      filename: file.originalFilename,
+      description,
+      enable_context: enableContext,
+      quick_questions: quickQuestions
+    })
     .select()
     .single();
 
   if (error) return res.status(500).json({ error: error.message });
 
-  // Chunk and embed
   const chunks = chunkText(text);
   for (let i = 0; i < chunks.length; i++) {
     const embedding = await getEmbedding(chunks[i]);
@@ -81,5 +85,10 @@ export default async function handler(req, res) {
     });
   }
 
-  res.status(200).json({ success: true, paperId: paper.id, chunks: chunks.length });
+  res.status(200).json({ 
+    success: true, 
+    paperId: paper.id, 
+    chunks: chunks.length,
+    chatLink: `/chat?id=${paper.id}`
+  });
 }
