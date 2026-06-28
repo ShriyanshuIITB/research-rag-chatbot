@@ -1,12 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
-import Groq from 'groq-sdk';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 async function getEmbedding(text) {
   const response = await fetch('https://api.jina.ai/v1/embeddings', {
@@ -32,28 +29,32 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { message, paperId } = req.body;
+  try {
+    const { message, paperId } = req.body;
 
-  // Get embedding for the question
-  const embedding = await getEmbedding(message);
+    const embedding = await getEmbedding(message);
 
-  // Find relevant chunks from Supabase
-  const { data: chunks } = await supabase.rpc('match_chunks', {
-    query_embedding: embedding,
-    match_paper_id: paperId,
-    match_count: 5
-  });
+    const { data: chunks } = await supabase.rpc('match_chunks', {
+      query_embedding: embedding,
+      match_paper_id: paperId,
+      match_count: 5
+    });
 
-  const context = chunks.map(c => c.content).join('\n\n');
+    const context = chunks.map(c => c.content).join('\n\n');
 
-  // Ask Groq with context
-  const completion = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    max_tokens: 1000,
-    messages: [
-      {
-        role: 'system',
-       content: `You are a strict research assistant. Follow these rules absolutely:
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 1000,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a strict research assistant. Follow these rules absolutely:
 1. Answer ONLY using the exact text provided in CONTEXT below.
 2. If the answer is not clearly stated in CONTEXT, say exactly: "This specific information is not available in the retrieved sections of the paper."
 3. Never guess, infer, or fill gaps with outside knowledge.
@@ -62,12 +63,16 @@ export default async function handler(req, res) {
 
 CONTEXT:
 ${context}`
-      },
-      { role: 'user', content: message }
-    ]
-  });
+          },
+          { role: 'user', content: message }
+        ]
+      })
+    });
 
-  res.status(200).json({
-    reply: completion.choices[0].message.content
-  });
+    const data = await response.json();
+    res.status(200).json({ reply: data.choices?.[0]?.message?.content || 'No response received.' });
+
+  } catch(err) {
+    res.status(500).json({ error: 'API call failed', detail: err.message });
+  }
 }
