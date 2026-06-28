@@ -13,10 +13,10 @@ const supabase = createClient(
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-function chunkText(text, size = 200) {
+function chunkText(text, size = 150, overlap = 30) {
   const words = text.split(' ');
   const chunks = [];
-  for (let i = 0; i < words.length; i += size) {
+  for (let i = 0; i < words.length; i += (size - overlap)) {
     chunks.push(words.slice(i, i + size).join(' '));
   }
   return chunks;
