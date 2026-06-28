@@ -31,6 +31,8 @@ export default async function handler(req, res) {
     const description = fields.description?.[0] || '';
     const enableContext = fields.enableContext?.[0] === 'true';
     const quickQuestions = JSON.parse(fields.quickQuestions?.[0] || '[]');
+    const profName = fields.profName?.[0] || '';
+    const institution = fields.institution?.[0] || '';
 
     // Step 1: Parse PDF and extract text
     const buffer = fs.readFileSync(file.filepath);
@@ -46,7 +48,9 @@ export default async function handler(req, res) {
         description,
         enable_context: enableContext,
         quick_questions: quickQuestions,
-        processed: false
+        processed: false,
+        professor_name: profName,
+        institution: institution
       })
       .select()
       .single();
