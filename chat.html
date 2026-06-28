@@ -250,6 +250,12 @@
       document.getElementById('headerTitle').textContent = paperData.title;
       document.getElementById('welcomeTitle').textContent = paperData.title;
       document.getElementById('welcomeDesc').textContent = paperData.description || 'Ask me anything about this research paper.';
+      if (paperData.professor_name) {
+        document.getElementById('introCard').style.display = 'block';
+        document.getElementById('profNameDisplay').textContent = paperData.professor_name;
+        document.getElementById('institutionDisplay').textContent = paperData.institution || '';
+      }
+
       document.getElementById('footerNote').textContent = `Answers based on: ${paperData.title}. Always verify critical decisions with the full paper.`;
       document.title = paperData.title;
 
