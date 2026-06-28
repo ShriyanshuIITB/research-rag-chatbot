@@ -64,69 +64,116 @@ export default async function handler(req, res) {
   try {
     const { message, paperId, conversationHistory = [] } = req.body;
 
+    // Step 1: Get paper info to know what topic it covers
+    const { data: paper } = await supabase
+      .from('papers')
+      .select('title, description')
+      .eq('id', paperId)
+      .single();
+
+    const paperTopic = paper?.title || 'this research paper';
+
+    // Step 2: Rewrite query
     const cleanQuery = await rewriteQuery(message, conversationHistory);
+
+    // Step 3: Get embedding
     const embedding = await getEmbedding(cleanQuery);
 
-    const { data: chunks, error: chunkError } = await supabase.rpc('match_chunks', {
+    // Step 4: Retrieve chunks WITH similarity scores
+    const { data: chunks, error: chunkError } = await supabase.rpc('match_chunks_with_score', {
       query_embedding: embedding,
       match_paper_id: paperId,
       match_count: 10
     });
 
-    if (chunkError) throw new Error(chunkError.message);
+    if (chunkError) {
+      // Fallback to original function if new one doesn't exist yet
+      const { data: fallbackChunks } = await supabase.rpc('match_chunks', {
+        query_embedding: embedding,
+        match_paper_id: paperId,
+        match_count: 10
+      });
 
-    const context = chunks
+      if (!fallbackChunks || fallbackChunks.length === 0) {
+        return res.status(200).json({
+          reply: `This question is outside the scope of this paper. This paper covers "${paperTopic}". Please ask a question related to the paper's content.`
+        });
+      }
+
+      const context = fallbackChunks
+        .map((c, i) => `[Section ${i + 1}]\n${c.content}`)
+        .join('\n\n---\n\n');
+
+      return await answerWithContext(context, message, conversationHistory, paperTopic, res);
+    }
+
+    // Step 5: Check similarity threshold
+    const SIMILARITY_THRESHOLD = 0.3;
+    const relevantChunks = chunks.filter(c => c.similarity > SIMILARITY_THRESHOLD);
+
+    if (relevantChunks.length === 0) {
+      return res.status(200).json({
+        reply: `This question appears to be outside the scope of this paper. This paper covers "${paperTopic}". I can only answer questions related to the paper's actual content. Please ask something related to the paper's research findings, methodology, or conclusions.`
+      });
+    }
+
+    const context = relevantChunks
       .map((c, i) => `[Section ${i + 1}]\n${c.content}`)
       .join('\n\n---\n\n');
 
-    const recentHistory = conversationHistory.slice(-6);
-
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 2000,
-        temperature: 0.3,
-        messages: [
-          {
-            role: 'system',
-            content: `You are a world-class research analyst and domain expert who has deeply studied the research paper provided below. You think rigorously, reason carefully, and give precise, actionable answers.
-
-YOUR APPROACH:
-- You do not just quote the paper. You REASON from it like a domain expert.
-- Apply the paper's findings, equations, methodology, and conclusions to answer the user's specific question.
-- If the user provides their context (district, budget, population), tailor your answer specifically to their situation.
-- Think step by step — identify what the user needs, find relevant findings, apply the logic, give a clear answer.
-- Cite specific numbers, formulas, and findings to back your reasoning.
-- Understand typos and followup questions — always interpret charitably.
-- Use conversation history for coherent followup answers.
-
-OUTPUT:
-- Direct answer first
-- Reasoning with specific numbers from paper
-- Practical recommendation
-- Clear, structured, actionable
-
-PAPER CONTEXT:
-${context}`
-          },
-          ...recentHistory,
-          { role: 'user', content: message }
-        ]
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || 'Groq error');
-
-    res.status(200).json({ reply: data.choices?.[0]?.message?.content || 'No response received.' });
+    return await answerWithContext(context, message, conversationHistory, paperTopic, res);
 
   } catch(err) {
     console.error('Chat error:', err);
     res.status(500).json({ error: 'API call failed', detail: err.message });
   }
+}
+
+async function answerWithContext(context, message, conversationHistory, paperTopic, res) {
+  const recentHistory = conversationHistory.slice(-6);
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 2000,
+      temperature: 0.3,
+      messages: [
+        {
+          role: 'system',
+          content: `You are a strict research assistant for the paper: "${paperTopic}".
+
+CRITICAL RULES — NEVER BREAK THESE:
+1. Answer ONLY using information from the CONTEXT provided below.
+2. If the context does not contain relevant information to answer the question, respond EXACTLY with: "This question is outside the scope of this paper. This paper covers '${paperTopic}'. Please ask a question related to the paper's content."
+3. NEVER use external knowledge, general knowledge, or anything not in the context.
+4. NEVER make up statistics, figures, costs, or facts not in the context.
+5. If you are even slightly unsure whether the context supports your answer, say so clearly.
+6. You ARE allowed to reason and synthesize from the context — but only from the context.
+
+WHEN YOU CAN ANSWER:
+- Reason deeply from the paper's findings
+- Apply the paper's framework to the user's specific situation
+- Cite specific numbers and findings from the context
+- Give practical, actionable recommendations based on the paper
+
+CONTEXT FROM PAPER:
+${context}`
+        },
+        ...recentHistory,
+        { role: 'user', content: message }
+      ]
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || 'Groq error');
+
+  return res.status(200).json({
+    reply: data.choices?.[0]?.message?.content || 'No response received.'
+  });
 }
