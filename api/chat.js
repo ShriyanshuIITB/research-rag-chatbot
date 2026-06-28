@@ -21,7 +21,12 @@ async function getEmbedding(text) {
   return data.data[0].embedding;
 }
 
-async function groqCall(messages, model = 'deepseek-r1-distill-llama-70b', maxTokens = 2000) {
+async function rewriteQuery(userMessage, conversationHistory) {
+  const history = conversationHistory
+    .slice(-4)
+    .map(m => `${m.role}: ${m.content}`)
+    .join('\n');
+
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -29,42 +34,70 @@ async function groqCall(messages, model = 'deepseek-r1-distill-llama-70b', maxTo
       'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
     },
     body: JSON.stringify({
-      model,
-      max_tokens: maxTokens,
-      temperature: 0.3,
-      messages
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 200,
+      temperature: 0.1,
+      messages: [
+        {
+          role: 'system',
+          content: `You are a query rewriter. Given conversation history and a user question:
+1. Fix spelling mistakes
+2. Resolve followup references ("what about that?" → make explicit)
+3. Make it a complete self-contained search query
+Return ONLY the rewritten query, nothing else.`
+        },
+        {
+          role: 'user',
+          content: `Conversation:\n${history}\n\nUser message: "${userMessage}"\n\nRewrite:`
+        }
+      ]
     })
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message || 'Groq API error');
-  return data.choices?.[0]?.message?.content || '';
+  return data.choices?.[0]?.message?.content?.trim() || userMessage;
 }
 
-async function rewriteQuery(userMessage, conversationHistory) {
-  // Fix spelling, resolve followup references, make query self-contained
-  const history = conversationHistory
-    .slice(-4)
-    .map(m => `${m.role}: ${m.content}`)
-    .join('\n');
+async function geminiChat(systemPrompt, conversationHistory, userMessage) {
+  const contents = [];
+  
+  for (const msg of conversationHistory.slice(-6)) {
+    contents.push({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    });
+  }
+  
+  contents.push({
+    role: 'user',
+    parts: [{ text: userMessage }]
+  });
 
-  const rewritten = await groqCall([
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
     {
-      role: 'system',
-      content: `You are a query rewriter. Given a conversation history and a user question, rewrite the question to:
-1. Fix any spelling mistakes
-2. Resolve any followup references (e.g. "what about that?" → make it explicit)
-3. Make it a complete, self-contained search query
-4. Keep it concise — one clear question
-
-Return ONLY the rewritten query, nothing else.`
-    },
-    {
-      role: 'user',
-      content: `Conversation so far:\n${history}\n\nUser's latest message: "${userMessage}"\n\nRewrite this into a clear search query:`
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
+        contents,
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2048,
+          topP: 0.8
+        }
+      })
     }
-  ], 'llama-3.3-70b-versatile', 200);
+  );
 
-  return rewritten.trim() || userMessage;
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Gemini API error');
+  }
+  
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
 }
 
 export default async function handler(req, res) {
@@ -78,7 +111,7 @@ export default async function handler(req, res) {
   try {
     const { message, paperId, conversationHistory = [] } = req.body;
 
-    // Step 1: Rewrite query — fix spelling, resolve followups
+    // Step 1: Rewrite query using Groq (fast, free)
     const cleanQuery = await rewriteQuery(message, conversationHistory);
 
     // Step 2: Get embedding for cleaned query
@@ -97,48 +130,34 @@ export default async function handler(req, res) {
       .map((c, i) => `[Section ${i + 1}]\n${c.content}`)
       .join('\n\n---\n\n');
 
-    // Step 4: Build conversation history (last 6 messages)
-    const recentHistory = conversationHistory.slice(-6);
-
-    // Step 5: DeepSeek R1 for deep reasoning
-    const reply = await groqCall([
-      {
-        role: 'system',
-        content: `You are a world-class research analyst and domain expert who has deeply studied the research paper provided below. You think rigorously, reason carefully, and give precise, actionable answers.
+    // Step 4: Gemini 1.5 Flash for deep reasoning
+    const systemPrompt = `You are a world-class research analyst and domain expert who has deeply studied the research paper provided below. You think rigorously, reason carefully, and give precise, actionable answers.
 
 YOUR APPROACH:
 - You do not just quote the paper. You REASON from it like a domain expert.
 - Apply the paper's findings, equations, methodology, and conclusions to answer the user's specific question.
-- If the user provides their context (district, budget, population type), tailor your answer specifically to their situation.
-- Think step by step — identify what the user actually needs, find relevant findings, apply the logic, give a clear answer.
-- Cite specific numbers, formulas, and findings to back your reasoning.
-- Distinguish between what the paper directly states vs what you are inferring.
-- If something is genuinely not covered, say so clearly.
+- If the user provides their context (district, budget, population), tailor your answer specifically to their situation using the paper's framework.
+- Think step by step — identify what the user actually needs, find the relevant findings, apply the logic, give a clear answer.
+- Cite specific numbers, formulas, and findings from the paper to back your reasoning.
+- Distinguish between what the paper directly states vs what you are inferring from its framework.
+- If something is genuinely not covered in the paper, say so clearly and honestly.
 - Understand that users may have typos or ask followup questions — always interpret charitably and helpfully.
+- You have memory of the conversation — use it to give coherent followup answers.
 
 OUTPUT FORMAT:
 - Direct answer first
 - Reasoning using paper's findings with specific numbers
 - Practical recommendation if applicable
-- Keep it clear, structured, actionable
+- Clear, structured, actionable
 
-RESEARCH PAPER CONTEXT:
-${context}`
-      },
-      ...recentHistory,
-      {
-        role: 'user',
-        content: message
-      }
-    ]);
+RESEARCH PAPER CONTEXT (10 most relevant sections):
+${context}
 
-    // Clean DeepSeek thinking tags if present
-    const cleanReply = reply.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+Remember: You are not a search engine. You are a domain expert who has internalized this research and applies it to real-world problems.`;
 
-    res.status(200).json({ 
-      reply: cleanReply,
-      queryUsed: cleanQuery
-    });
+    const reply = await geminiChat(systemPrompt, conversationHistory, message);
+
+    res.status(200).json({ reply });
 
   } catch(err) {
     console.error('Chat error:', err);
