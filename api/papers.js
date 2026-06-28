@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   if (req.query.id) {
     const { data, error } = await supabase
       .from('papers')
-      .select('id, title, filename, description, enable_context, quick_questions, created_at')
+      .select('id, title, filename, description, enable_context, quick_questions, professor_name, institution, created_at')
       .eq('id', req.query.id)
       .single();
 
