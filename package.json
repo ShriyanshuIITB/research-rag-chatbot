@@ -1,0 +1,10 @@
+{
+  "name": "research-rag-chatbot",
+  "version": "1.0.0",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "groq-sdk": "^0.3.0",
+    "pdf-parse": "^1.1.1",
+    "formidable": "^3.5.1"
+  }
+}
