@@ -216,7 +216,7 @@
     </div>
     <div id="chatSection" style="display:none; flex-direction:column; flex:1;">
       <div class="welcome" id="welcomeBox">
-        <h2 id="paperTitle">Paper Title</h2>
+        <h2 id="paperTitleDisplay">Paper Title</h2>
         <p>Ask me anything about this research paper. I will answer based only on its contents.</p>
       </div>
       <div class="chat-area" id="chatArea"></div>
@@ -233,7 +233,7 @@
   <div class="modal-box">
     <h3>Professor Upload Panel</h3>
     <input type="password" id="adminPass" placeholder="Enter admin password">
-    <input type="text" id="paperTitle" placeholder="Paper title (e.g. Income Transfer Policies 2026)">
+    <input type="text" id="paperTitleInput" placeholder="Paper title (e.g. Income Transfer Policies 2026)">
     <input type="file" id="pdfFile" accept=".pdf">
     <button onclick="uploadPaper()">Upload Paper</button>
     <button class="cancel" onclick="closeAdmin()">Cancel</button>
@@ -271,7 +271,7 @@
 
   function selectPaper(id, title) {
     selectedPaperId = id;
-    document.getElementById('paperTitle').textContent = title;
+    document.getElementById('paperTitleDisplay').textContent = title;
     document.getElementById('noPaper').style.display = 'none';
     document.getElementById('chatSection').style.display = 'flex';
     document.getElementById('chatArea').innerHTML = '';
@@ -329,7 +329,7 @@
 
   async function uploadPaper() {
     const password = document.getElementById('adminPass').value;
-    const title = document.getElementById('paperTitle').value;
+    const title = document.getElementById('paperTitleInput').value;
     const file = document.getElementById('pdfFile').files[0];
     const status = document.getElementById('uploadStatus');
 
