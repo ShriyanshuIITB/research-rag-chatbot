@@ -10,31 +10,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-function chunkText(text, size = 150, overlap = 30) {
-  const words = text.split(' ');
-  const chunks = [];
-  for (let i = 0; i < words.length; i += (size - overlap)) {
-    chunks.push(words.slice(i, i + size).join(' '));
-  }
-  return chunks;
-}
-
-async function getEmbedding(text) {
-  const response = await fetch('https://api.jina.ai/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.JINA_API_KEY}`
-    },
-    body: JSON.stringify({
-      input: [text],
-      model: 'jina-embeddings-v2-base-en'
-    })
-  });
-  const data = await response.json();
-  return data.data[0].embedding;
-}
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -47,48 +22,64 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const form = formidable({ maxFileSize: 10 * 1024 * 1024 });
-  const [fields, files] = await form.parse(req);
+  try {
+    const form = formidable({ maxFileSize: 10 * 1024 * 1024 });
+    const [fields, files] = await form.parse(req);
 
-  const file = files.pdf[0];
-  const title = fields.title[0];
-  const description = fields.description?.[0] || '';
-  const enableContext = fields.enableContext?.[0] === 'true';
-  const quickQuestions = JSON.parse(fields.quickQuestions?.[0] || '[]');
+    const file = files.pdf[0];
+    const title = fields.title[0];
+    const description = fields.description?.[0] || '';
+    const enableContext = fields.enableContext?.[0] === 'true';
+    const quickQuestions = JSON.parse(fields.quickQuestions?.[0] || '[]');
 
-  const buffer = fs.readFileSync(file.filepath);
-  const pdf = await pdfParse(buffer);
-  const text = pdf.text;
+    // Step 1: Parse PDF and extract text
+    const buffer = fs.readFileSync(file.filepath);
+    const pdf = await pdfParse(buffer);
+    const text = pdf.text;
 
-  const { data: paper, error } = await supabase
-    .from('papers')
-    .insert({
-      title,
-      filename: file.originalFilename,
-      description,
-      enable_context: enableContext,
-      quick_questions: quickQuestions
-    })
-    .select()
-    .single();
+    // Step 2: Create paper record immediately
+    const { data: paper, error } = await supabase
+      .from('papers')
+      .insert({
+        title,
+        filename: file.originalFilename,
+        description,
+        enable_context: enableContext,
+        quick_questions: quickQuestions,
+        processed: false
+      })
+      .select()
+      .single();
 
-  if (error) return res.status(500).json({ error: error.message });
+    if (error) return res.status(500).json({ error: error.message });
 
-  const chunks = chunkText(text);
-  for (let i = 0; i < chunks.length; i++) {
-    const embedding = await getEmbedding(chunks[i]);
-    await supabase.from('paper_chunks').insert({
-      paper_id: paper.id,
-      content: chunks[i],
-      embedding,
-      chunk_index: i
+    // Step 3: Return link immediately to professor
+    res.status(200).json({
+      success: true,
+      paperId: paper.id,
+      chatLink: `/chat?id=${paper.id}`,
+      message: 'Paper uploaded! Chatbot link is ready. Processing chunks in background...'
     });
-  }
 
-  res.status(200).json({ 
-    success: true, 
-    paperId: paper.id, 
-    chunks: chunks.length,
-    chatLink: `/chat?id=${paper.id}`
-  });
+    // Step 4: Trigger Edge Function in background (fire and forget)
+    const edgeFunctionUrl = `${process.env.SUPABASE_URL}/functions/v1/process-chunks`;
+    
+    fetch(edgeFunctionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
+      },
+      body: JSON.stringify({
+        paperId: paper.id,
+        text
+      })
+    }).catch(err => console.error('Edge function error:', err));
+
+  } catch (err) {
+    console.error('Upload error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Upload failed', detail: err.message });
+    }
+  }
 }
