@@ -200,6 +200,15 @@
     <h2>Professor Login</h2>
     <p>Enter your admin password to access the dashboard</p>
     <div class="form-group">
+      <label>Your Name</label>
+      <input type="text" id="profName" placeholder="e.g. Prof. Samarth Gupta">
+    </div>
+
+    <div class="form-group">
+      <label>Institution</label>
+      <input type="text" id="institution" placeholder="e.g. IIM Calcutta">
+    </div>
+    <div class="form-group">
       <label>Password</label>
       <input type="password" id="loginPass" placeholder="Enter password" onkeypress="if(event.key==='Enter') login()">
     </div>
@@ -298,6 +307,8 @@
   async function uploadPaper() {
     const title = document.getElementById('paperTitle').value;
     const description = document.getElementById('paperDesc').value;
+    const profName = document.getElementById('profName').value;
+    const institution = document.getElementById('institution').value;
     const file = document.getElementById('pdfFile').files[0];
     const enableContext = document.getElementById('enableContext').checked;
     const quickQuestions = getQuestions();
@@ -314,6 +325,8 @@
     const formData = new FormData();
     formData.append('pdf', file);
     formData.append('title', title);
+    formData.append('profName', profName);
+    formData.append('institution', institution);
     formData.append('description', description);
     formData.append('enableContext', enableContext);
     formData.append('quickQuestions', JSON.stringify(quickQuestions));
