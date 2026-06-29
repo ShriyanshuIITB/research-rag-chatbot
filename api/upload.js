@@ -18,9 +18,15 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const auth = req.headers.authorization;
-  if (auth !== `Bearer ${process.env.ADMIN_PASSWORD}`) {
+  const token = auth?.replace('Bearer ', '');
+
+// Accept either admin password or a valid professor ID (UUID format)
+  const isAdminPassword = token === process.env.ADMIN_PASSWORD;
+  const isValidProfessor = token && token.length === 36 && token.includes('-');
+
+  if (!isAdminPassword && !isValidProfessor) {
     return res.status(401).json({ error: 'Unauthorized' });
-  }
+}
 
   try {
     const form = formidable({ maxFileSize: 10 * 1024 * 1024 });
