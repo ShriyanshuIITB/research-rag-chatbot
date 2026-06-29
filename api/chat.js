@@ -95,9 +95,17 @@ export default async function handler(req, res) {
       });
 
       if (!fallbackChunks || fallbackChunks.length === 0) {
-        return res.status(200).json({
-          reply: `This question is outside the scope of this paper. This paper covers "${paperTopic}". Please ask a question related to the paper's content.`
-        });
+        const reply = data.choices?.[0]?.message?.content || 'No response received.';
+    
+    // Log the question
+    const answered = !reply.includes('outside the scope');
+    await supabase.from('question_logs').insert({
+      paper_id: paperId,
+      question: message,
+      answered
+    }).catch(() => {}); // Don't fail if logging fails
+
+    return res.status(200).json({ reply });
       }
 
       const context = fallbackChunks
@@ -173,7 +181,15 @@ ${context}`
   const data = await response.json();
   if (!response.ok) throw new Error(data.error?.message || 'Groq error');
 
-  return res.status(200).json({
-    reply: data.choices?.[0]?.message?.content || 'No response received.'
-  });
+  const reply = data.choices?.[0]?.message?.content || 'No response received.';
+
+  // Log the question
+  const answered = !reply.includes('outside the scope');
+  await supabase.from('question_logs').insert({
+    paper_id: paperId,
+    question: message,
+    answered
+  }).catch(() => {});
+
+  return res.status(200).json({ reply });
 }
