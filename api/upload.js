@@ -75,12 +75,12 @@ export default async function handler(req, res) {
 
     // Step 4: Trigger Edge Function in background (fire and forget)
     const edgeFunctionUrl = `${process.env.SUPABASE_URL}/functions/v1/process-chunks`;
-    
+
     fetch(edgeFunctionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`
+        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`
       },
       body: JSON.stringify({
         paperId: paper.id,
