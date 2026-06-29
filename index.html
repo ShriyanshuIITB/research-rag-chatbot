@@ -3,51 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Research Chatbot — Professor Dashboard</title>
+  <title>Research Chatbot Platform</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; display: flex; flex-direction: column; }
     
     .header {
       background: #1a3a5c;
       color: white;
       padding: 20px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      text-align: center;
     }
-    .header h1 { font-size: 20px; font-weight: 600; }
-    .header p { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+    .header h1 { font-size: 22px; font-weight: 600; }
+    .header p { font-size: 14px; opacity: 0.75; margin-top: 4px; }
 
-    .login-screen {
+    .container {
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: calc(100vh - 70px);
+      padding: 32px;
     }
-    .login-box {
+
+    .auth-box {
       background: white;
-      padding: 40px;
       border-radius: 12px;
-      width: 400px;
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     }
-    .login-box h2 { color: #1a3a5c; margin-bottom: 8px; }
-    .login-box p { color: #666; font-size: 14px; margin-bottom: 24px; }
-    
+
+    .tabs {
+      display: flex;
+      margin-bottom: 28px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      color: #999;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+    .tab.active { color: #1a3a5c; border-bottom-color: #1a3a5c; }
+
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: 13px; font-weight: 500; color: #444; margin-bottom: 6px; }
-    .form-group input, .form-group textarea, .form-group select {
+    .form-group input {
       width: 100%;
-      padding: 10px 14px;
+      padding: 11px 14px;
       border: 1px solid #e0e0e0;
       border-radius: 8px;
       font-size: 14px;
       outline: none;
-      font-family: inherit;
     }
-    .form-group input:focus, .form-group textarea:focus { border-color: #1a3a5c; }
-    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-group input:focus { border-color: #1a3a5c; }
 
     .btn {
       width: 100%;
@@ -59,364 +74,143 @@
       cursor: pointer;
       font-size: 15px;
       font-weight: 500;
-    }
-    .btn:hover { background: #15304d; }
-    .btn-outline {
-      background: white;
-      color: #1a3a5c;
-      border: 1px solid #1a3a5c;
       margin-top: 8px;
     }
+    .btn:hover { background: #15304d; }
 
-    .dashboard { padding: 32px; max-width: 900px; margin: 0 auto; }
-    .dashboard h2 { color: #1a3a5c; margin-bottom: 24px; }
+    .error { color: #dc2626; font-size: 13px; margin-top: 10px; }
+    .success { color: #16a34a; font-size: 13px; margin-top: 10px; }
 
-    .upload-card {
-      background: white;
-      border-radius: 12px;
-      padding: 32px;
-      margin-bottom: 32px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-    .upload-card h3 { color: #1a3a5c; margin-bottom: 20px; font-size: 17px; }
-
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .toggle-row label { font-size: 14px; color: #444; font-weight: 500; }
-    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-
-    .questions-list { margin-top: 8px; }
-    .question-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .question-row input { flex: 1; }
-    .question-row button {
-      padding: 8px 12px;
-      background: #fee2e2;
-      color: #dc2626;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .add-question-btn {
-      padding: 8px 16px;
-      background: #f0f4f8;
-      color: #1a3a5c;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      margin-top: 4px;
-    }
-
-    .status { padding: 12px; border-radius: 8px; font-size: 14px; margin-top: 12px; }
-    .status.success { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
-    .status.error { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
-    .status.loading { background: #eff6ff; color: #2563eb; border: 1px solid #93c5fd; }
-
-    .link-box {
-      background: #f0f4f8;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 12px;
-    }
-    .link-box span { font-size: 13px; color: #333; font-family: monospace; }
-    .copy-btn {
-      padding: 6px 14px;
-      background: #1a3a5c;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-
-    .papers-grid { display: grid; gap: 16px; }
-    .paper-card {
-      background: white;
-      border-radius: 12px;
-      padding: 20px 24px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .paper-card h4 { color: #1a3a5c; margin-bottom: 4px; }
-    .paper-card p { font-size: 13px; color: #666; }
-    .paper-card-actions { display: flex; gap: 8px; }
-    .open-btn {
-      padding: 8px 16px;
-      background: #1a3a5c;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      text-decoration: none;
-    }
-    .copy-link-btn {
-      padding: 8px 16px;
-      background: #f0f4f8;
-      color: #1a3a5c;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .delete-btn {
-  padding: 8px 16px;
-  background: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fca5a5;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
+    .form-panel { display: none; }
+    .form-panel.active { display: block; }
   </style>
 </head>
 <body>
 
 <div class="header">
-  <div>
-    <h1>📄 Research Chatbot Platform</h1>
-    <p>Professor Dashboard — Upload papers and share chatbot links</p>
-  </div>
+  <h1>📄 Research Chatbot Platform</h1>
+  <p>Upload research papers · Share chatbot links · Help officers make decisions</p>
 </div>
 
-<!-- Login Screen -->
-<div class="login-screen" id="loginScreen">
-  <div class="login-box">
-    <h2>Professor Login</h2>
-    <p>Enter your admin password to access the dashboard</p>
-    <div class="form-group">
-      <label>Your Name</label>
-      <input type="text" id="profName" placeholder="e.g. Prof. Samarth Gupta">
+<div class="container">
+  <div class="auth-box">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('login')">Login</div>
+      <div class="tab" onclick="switchTab('register')">Register</div>
     </div>
 
-    <div class="form-group">
-      <label>Institution</label>
-      <input type="text" id="institution" placeholder="e.g. IIM Calcutta">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="loginPass" placeholder="Enter password" onkeypress="if(event.key==='Enter') login()">
-    </div>
-    <button class="btn" onclick="login()">Login</button>
-    <div id="loginError" style="color:red;font-size:13px;margin-top:8px;"></div>
-  </div>
-</div>
-
-<!-- Dashboard -->
-<div class="dashboard" id="dashboard" style="display:none;">
-  <h2>Welcome, Professor</h2>
-
-  <!-- Upload Section -->
-  <div class="upload-card">
-    <h3>📤 Upload New Paper</h3>
-    
-    <div class="form-group">
-      <label>Paper Title</label>
-      <input type="text" id="paperTitle" placeholder="e.g. Income Transfer Policies and Aggregate Welfare: Evidence from India">
-    </div>
-
-    <div class="form-group">
-      <label>Short Description (shown to officers/students)</label>
-      <textarea id="paperDesc" placeholder="e.g. This chatbot helps IAS officers implement income transfer schemes based on AIDIS 2019 data covering 1.15 lakh Indian households."></textarea>
-    </div>
-
-    <div class="form-group">
-      <label>PDF File</label>
-      <input type="file" id="pdfFile" accept=".pdf">
-    </div>
-
-    <div class="toggle-row">
-      <input type="checkbox" id="enableContext">
-      <label for="enableContext">Enable district/state context fields for officers</label>
-    </div>
-
-    <div class="form-group">
-      <label>Quick Questions (officers will see these as clickable buttons)</label>
-      <div class="questions-list" id="questionsList">
-        <div class="question-row">
-          <input type="text" placeholder="e.g. Which scheme gives highest welfare improvement?">
-          <button onclick="removeQuestion(this)">✕</button>
-        </div>
+    <!-- Login -->
+    <div class="form-panel active" id="loginPanel">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="your@email.com" onkeypress="if(event.key==='Enter') login()">
       </div>
-      <button class="add-question-btn" onclick="addQuestion()">+ Add Question</button>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Your password" onkeypress="if(event.key==='Enter') login()">
+      </div>
+      <button class="btn" onclick="login()">Login to Dashboard</button>
+      <div id="loginMsg"></div>
     </div>
 
-    <button class="btn" onclick="uploadPaper()">Upload & Generate Chatbot Link</button>
-    <div id="uploadStatus"></div>
-    <div id="generatedLink" style="display:none;">
-      <div class="link-box">
-        <span id="chatLinkText"></span>
-        <button class="copy-btn" onclick="copyLink()">Copy Link</button>
+    <!-- Register -->
+    <div class="form-panel" id="registerPanel">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="Prof. Samarth Gupta">
       </div>
+      <div class="form-group">
+        <label>Institution</label>
+        <input type="text" id="regInstitution" placeholder="IIM Calcutta">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="regEmail" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="regPassword" placeholder="Choose a strong password">
+      </div>
+      <button class="btn" onclick="register()">Create Account</button>
+      <div id="registerMsg"></div>
     </div>
   </div>
-
-  <!-- Existing Papers -->
-  <h2>Your Papers</h2>
-  <div class="papers-grid" id="papersGrid">Loading...</div>
 </div>
 
 <script>
-  let adminPassword = '';
-
-  function login() {
-    const pass = document.getElementById('loginPass').value;
-    if (!pass) return;
-    adminPassword = pass;
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    loadPapers();
+  // If already logged in, redirect to dashboard
+  if (localStorage.getItem('professor')) {
+    window.location.href = '/dashboard';
   }
 
-  function addQuestion() {
-    const list = document.getElementById('questionsList');
-    const row = document.createElement('div');
-    row.className = 'question-row';
-    row.innerHTML = `
-      <input type="text" placeholder="e.g. How much should poor vs rich households get?">
-      <button onclick="removeQuestion(this)">✕</button>
-    `;
-    list.appendChild(row);
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.tab:${tab === 'login' ? 'first-child' : 'last-child'}`).classList.add('active');
+    document.getElementById(tab + 'Panel').classList.add('active');
   }
 
-  function removeQuestion(btn) {
-    btn.parentElement.remove();
-  }
+  async function login() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const msg = document.getElementById('loginMsg');
 
-  function getQuestions() {
-    return Array.from(document.querySelectorAll('.question-row input'))
-      .map(i => i.value.trim())
-      .filter(q => q.length > 0);
-  }
-
-  async function uploadPaper() {
-    const title = document.getElementById('paperTitle').value;
-    const description = document.getElementById('paperDesc').value;
-    const profName = document.getElementById('profName').value;
-    const institution = document.getElementById('institution').value;
-    const file = document.getElementById('pdfFile').files[0];
-    const enableContext = document.getElementById('enableContext').checked;
-    const quickQuestions = getQuestions();
-    const status = document.getElementById('uploadStatus');
-
-    if (!title || !file) {
-      status.innerHTML = '<div class="status error">Please fill title and select a PDF file.</div>';
+    if (!email || !password) {
+      msg.innerHTML = '<p class="error">Please fill all fields.</p>';
       return;
     }
 
-    status.innerHTML = '<div class="status loading">⏳ Uploading and processing PDF... this may take 2-3 minutes for large papers.</div>';
-    document.getElementById('generatedLink').style.display = 'none';
-
-    const formData = new FormData();
-    formData.append('pdf', file);
-    formData.append('title', title);
-    formData.append('profName', profName);
-    formData.append('institution', institution);
-    formData.append('description', description);
-    formData.append('enableContext', enableContext);
-    formData.append('quickQuestions', JSON.stringify(quickQuestions));
+    msg.innerHTML = '<p style="color:#666;font-size:13px;">Logging in...</p>';
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch('/api/auth', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${adminPassword}` },
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', email, password })
       });
       const data = await res.json();
-      
+
       if (data.success) {
-        const link = `${window.location.origin}/chat?id=${data.paperId}`;
-        status.innerHTML = `<div class="status success">✓ Uploaded successfully! ${data.chunks} chunks processed.</div>`;
-        document.getElementById('chatLinkText').textContent = link;
-        document.getElementById('generatedLink').style.display = 'block';
-        loadPapers();
+        localStorage.setItem('professor', JSON.stringify(data.professor));
+        window.location.href = '/dashboard';
       } else {
-        status.innerHTML = `<div class="status error">Error: ${data.error}</div>`;
-        if (data.error === 'Unauthorized') {
-          status.innerHTML = '<div class="status error">Wrong password. Please refresh and try again.</div>';
-        }
+        msg.innerHTML = `<p class="error">${data.error}</p>`;
       }
     } catch(e) {
-      status.innerHTML = '<div class="status error">Upload failed. Check your connection.</div>';
+      msg.innerHTML = '<p class="error">Login failed. Try again.</p>';
     }
   }
 
-  function copyLink() {
-    const link = document.getElementById('chatLinkText').textContent;
-    navigator.clipboard.writeText(link);
-    document.querySelector('.copy-btn').textContent = 'Copied!';
-    setTimeout(() => document.querySelector('.copy-btn').textContent = 'Copy Link', 2000);
-  }
+  async function register() {
+    const name = document.getElementById('regName').value;
+    const institution = document.getElementById('regInstitution').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+    const msg = document.getElementById('registerMsg');
 
-  async function loadPapers() {
-    try {
-      const res = await fetch('/api/papers');
-      const data = await res.json();
-      const grid = document.getElementById('papersGrid');
-      
-      if (!data.papers || data.papers.length === 0) {
-        grid.innerHTML = '<p style="color:#999;font-size:14px;">No papers uploaded yet.</p>';
-        return;
-      }
-
-      grid.innerHTML = data.papers.map(p => `
-        <div class="paper-card">
-          <div>
-            <h4>${p.title}</h4>
-            <p>${p.description || 'No description'} · ${new Date(p.created_at).toLocaleDateString('en-IN')}</p>
-          </div>
-          <div class="paper-card-actions">
-            <button class="copy-link-btn" onclick="copyPaperLink('${p.id}')">Copy Link</button>
-            <a class="open-btn" href="/chat?id=${p.id}" target="_blank">Open Chatbot</a>
-            <button class="delete-btn" onclick="deletePaper('${p.id}', '${p.title}')">Delete</button>
-          </div>
-        </div>
-      `).join('');
-    } catch(e) {
-      document.getElementById('papersGrid').innerHTML = '<p style="color:red;">Failed to load papers.</p>';
+    if (!name || !email || !password) {
+      msg.innerHTML = '<p class="error">Please fill all required fields.</p>';
+      return;
     }
-  }
 
-  function copyPaperLink(id) {
-    const link = `${window.location.origin}/chat?id=${id}`;
-    navigator.clipboard.writeText(link);
-    alert('Link copied!');
-  }
-  async function deletePaper(id, title) {
-    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    msg.innerHTML = '<p style="color:#666;font-size:13px;">Creating account...</p>';
+
     try {
-      const res = await fetch('/api/delete', {
-        method: 'DELETE',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminPassword}` 
-        },
-        body: JSON.stringify({ paperId: id })
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'register', name, institution, email, password })
       });
       const data = await res.json();
+
       if (data.success) {
-        alert('Paper deleted successfully.');
-        loadPapers();
+        localStorage.setItem('professor', JSON.stringify(data.professor));
+        window.location.href = '/dashboard';
       } else {
-        alert('Error: ' + data.error);
+        msg.innerHTML = `<p class="error">${data.error}</p>`;
       }
     } catch(e) {
-      alert('Delete failed.');
+      msg.innerHTML = '<p class="error">Registration failed. Try again.</p>';
     }
   }
 </script>
