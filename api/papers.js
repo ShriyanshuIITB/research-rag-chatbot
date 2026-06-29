@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   if (req.query.id) {
     const { data, error } = await supabase
       .from('papers')
-      .select('id, title, filename, description, enable_context, quick_questions, professor_name, institution, created_at')
+      .select('id, title, filename, description, enable_context, quick_questions, professor_name, institution, professor_id, processed, created_at')
       .eq('id', req.query.id)
       .single();
 
@@ -24,10 +24,17 @@ export default async function handler(req, res) {
     return res.status(200).json({ paper: data });
   }
 
-  // Get all papers
+  // Get papers filtered by professor
+  const professorId = req.query.professorId;
+
+  if (!professorId) {
+    return res.status(400).json({ error: 'professorId is required' });
+  }
+
   const { data, error } = await supabase
     .from('papers')
-    .select('id, title, description, professor_name, institution, created_at')
+    .select('id, title, description, professor_name, institution, processed, created_at')
+    .eq('professor_id', professorId)
     .order('created_at', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
