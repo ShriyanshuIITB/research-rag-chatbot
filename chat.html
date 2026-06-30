@@ -7,172 +7,47 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; }
-
-    .header {
-      background: #1a3a5c;
-      color: white;
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+    .header { background: #1a3a5c; color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
     .header h1 { font-size: 18px; font-weight: 600; }
     .header p { font-size: 12px; opacity: 0.75; margin-top: 2px; }
-    .header-badge {
-      background: rgba(255,255,255,0.15);
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 12px;
-    }
-
-    .container {
-      display: flex;
-      height: calc(100vh - 64px);
-    }
-
-    .sidebar {
-      width: 270px;
-      background: white;
-      border-right: 1px solid #e0e0e0;
-      padding: 20px 16px;
-      overflow-y: auto;
-      display: none;
-    }
+    .header-badge { background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; font-size: 12px; }
+    .container { display: flex; height: calc(100vh - 64px); }
+    .sidebar { width: 270px; background: white; border-right: 1px solid #e0e0e0; padding: 20px 16px; overflow-y: auto; display: none; }
     .sidebar.visible { display: block; }
-
     .sidebar-section { margin-bottom: 24px; }
-    .sidebar-section h3 {
-      font-size: 11px;
-      text-transform: uppercase;
-      color: #999;
-      letter-spacing: 0.8px;
-      margin-bottom: 10px;
-      font-weight: 600;
-    }
-
+    .sidebar-section h3 { font-size: 11px; text-transform: uppercase; color: #999; letter-spacing: 0.8px; margin-bottom: 10px; font-weight: 600; }
     .context-field { margin-bottom: 12px; }
     .context-field label { display: block; font-size: 12px; color: #555; margin-bottom: 4px; }
-    .context-field input, .context-field select {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      font-size: 13px;
-      outline: none;
-    }
+    .context-field input, .context-field select { width: 100%; padding: 8px 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; outline: none; }
     .context-field input:focus { border-color: #1a3a5c; }
-
-    .quick-question {
-      padding: 9px 12px;
-      background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      color: #333;
-      margin-bottom: 6px;
-      transition: all 0.2s;
-      line-height: 1.4;
-    }
+    .quick-question { padding: 9px 12px; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; font-size: 13px; color: #333; margin-bottom: 6px; transition: all 0.2s; line-height: 1.4; }
     .quick-question:hover { background: #e8f0fe; border-color: #1a3a5c; color: #1a3a5c; }
-
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .welcome-box {
-      margin: 20px 24px 0;
-      background: white;
-      border-radius: 10px;
-      padding: 20px 24px;
-      border: 1px solid #e0e0e0;
-    }
+    .main { flex: 1; display: flex; flex-direction: column; }
+    .welcome-box { margin: 20px 24px 0; background: white; border-radius: 10px; padding: 20px 24px; border: 1px solid #e0e0e0; }
     .welcome-box h2 { color: #1a3a5c; font-size: 17px; margin-bottom: 6px; }
     .welcome-box p { color: #666; font-size: 13px; line-height: 1.6; }
-
-    .chat-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px 24px;
-    }
-
-    .message {
-      margin-bottom: 16px;
-      display: flex;
-      gap: 10px;
-    }
+    .prof-intro { background: #f0f4f8; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
+    .prof-intro p { margin: 0; }
+    .summary-box { background: #fefce8; border-left: 4px solid #eab308; padding: 12px 16px; margin-top: 12px; border-radius: 4px; font-size: 13px; color: #444; }
+    .summary-box strong { display: block; margin-bottom: 4px; color: #1a3a5c; }
+    .chat-area { flex: 1; overflow-y: auto; padding: 16px 24px; }
+    .message { margin-bottom: 16px; display: flex; gap: 10px; }
     .message.user { flex-direction: row-reverse; }
-    .message-content {
-      max-width: 72%;
-      padding: 12px 16px;
-      border-radius: 10px;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-    .message.user .message-content {
-      background: #1a3a5c;
-      color: white;
-      border-radius: 10px 10px 2px 10px;
-    }
-    .message.assistant .message-content {
-      background: white;
-      border: 1px solid #e0e0e0;
-      color: #333;
-      border-radius: 10px 10px 10px 2px;
-    }
-
-    .input-area {
-      padding: 16px 24px;
-      background: white;
-      border-top: 1px solid #e0e0e0;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .input-area input {
-      flex: 1;
-      padding: 12px 16px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 14px;
-      outline: none;
-    }
+    .message-content { max-width: 72%; padding: 12px 16px; border-radius: 10px; font-size: 14px; line-height: 1.6; }
+    .message.user .message-content { background: #1a3a5c; color: white; border-radius: 10px 10px 2px 10px; }
+    .message.assistant .message-content { background: white; border: 1px solid #e0e0e0; color: #333; border-radius: 10px 10px 10px 2px; }
+    .input-area { padding: 16px 24px; background: white; border-top: 1px solid #e0e0e0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .input-area input { flex: 1; padding: 12px 16px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none; min-width: 150px; }
     .input-area input:focus { border-color: #1a3a5c; }
-    .input-area button {
-      padding: 12px 22px;
-      background: #1a3a5c;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-    }
+    .input-area button { padding: 12px 22px; background: #1a3a5c; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; }
     .input-area button:hover { background: #15304d; }
-
-    .footer-note {
-      text-align: center;
-      font-size: 11px;
-      color: #bbb;
-      padding: 8px;
-      background: white;
-      border-top: 1px solid #f0f0f0;
-    }
-
-    .loading-screen {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #999;
-      font-size: 15px;
-    }
+    .input-area .toggle-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #555; }
+    .input-area .toggle-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+    .footer-note { text-align: center; font-size: 11px; color: #bbb; padding: 8px; background: white; border-top: 1px solid #f0f0f0; }
+    .loading-screen { flex: 1; display: flex; align-items: center; justify-content: center; color: #999; font-size: 15px; }
   </style>
 </head>
 <body>
-
 <div class="header">
   <div>
     <h1 id="headerTitle">Loading...</h1>
@@ -180,50 +55,44 @@
   </div>
   <div class="header-badge">Research Assistant</div>
 </div>
-
 <div class="container">
   <div class="sidebar" id="sidebar">
     <div class="sidebar-section" id="contextSection" style="display:none;">
       <h3>Your Context</h3>
-      <div class="context-field">
-        <label>District Name</label>
-        <input type="text" id="districtInput" placeholder="e.g. Varanasi">
-      </div>
-      <div class="context-field">
-        <label>State</label>
-        <input type="text" id="stateInput" placeholder="e.g. Uttar Pradesh">
-      </div>
-      <div class="context-field">
-        <label>Available Budget</label>
-        <input type="text" id="budgetInput" placeholder="e.g. ₹50 lakh">
-      </div>
+      <div class="context-field"><label>District Name</label><input type="text" id="districtInput" placeholder="e.g. Varanasi"></div>
+      <div class="context-field"><label>State</label><input type="text" id="stateInput" placeholder="e.g. Uttar Pradesh"></div>
+      <div class="context-field"><label>Available Budget</label><input type="text" id="budgetInput" placeholder="e.g. ₹50 lakh"></div>
     </div>
-
     <div class="sidebar-section">
       <h3>Quick Questions</h3>
       <div id="quickQuestions"></div>
     </div>
   </div>
-
   <div class="main">
     <div id="loadingScreen" class="loading-screen">Loading paper...</div>
-    
     <div id="chatInterface" style="display:none; flex-direction:column; flex:1;">
-   <div class="welcome-box">
-     <div id="introCard" style="background:#f0f4f8;border-radius:8px;padding:12px 16px;margin-bottom:12px;display:none;">
-      <p style="font-size:13px;color:#555;margin-bottom:4px;">📬 Shared by</p>
-      <p style="font-size:15px;font-weight:600;color:#1a3a5c;" id="profNameDisplay"></p>
-      <p style="font-size:13px;color:#777;" id="institutionDisplay"></p>
-     </div>
-     <h2 id="welcomeTitle"></h2>
-     <p id="welcomeDesc"></p>
-   </div>
+      <div class="welcome-box">
+        <div id="profIntro" class="prof-intro" style="display:none;">
+          <p style="font-size:13px;color:#555;margin-bottom:4px;">📬 Shared by</p>
+          <p style="font-size:15px;font-weight:600;color:#1a3a5c;" id="profNameDisplay"></p>
+          <p style="font-size:13px;color:#777;" id="institutionDisplay"></p>
+        </div>
+        <h2 id="welcomeTitle"></h2>
+        <p id="welcomeDesc"></p>
+        <div id="summaryBox" class="summary-box" style="display:none;">
+          <strong>🔍 Key Findings</strong>
+          <div id="summaryContent"></div>
+        </div>
+      </div>
       <div class="chat-area" id="chatArea"></div>
-     <div class="input-area">
-       <input type="text" id="userInput" placeholder="Ask a question about this paper..." onkeypress="if(event.key==='Enter') sendMessage()">
-       <button onclick="sendMessage()">Send</button>
-       <button onclick="exportChat()" style="padding:12px 16px;background:#f0f4f8;color:#1a3a5c;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:13px;white-space:nowrap;">Export PDF</button>
-     </div>
+      <div class="input-area">
+        <input type="text" id="userInput" placeholder="Ask a question about this paper..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="exportChat()" style="padding:12px 16px;background:#f0f4f8;color:#1a3a5c;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:13px;white-space:nowrap;">Export PDF</button>
+        <label class="toggle-label">
+          <input type="checkbox" id="crossPaperToggle"> Ask across all papers by this professor
+        </label>
+      </div>
       <div class="footer-note" id="footerNote"></div>
     </div>
   </div>
@@ -252,9 +121,14 @@
       document.getElementById('welcomeTitle').textContent = paperData.title;
       document.getElementById('welcomeDesc').textContent = paperData.description || 'Ask me anything about this research paper.';
       if (paperData.professor_name) {
-        document.getElementById('introCard').style.display = 'block';
+        document.getElementById('profIntro').style.display = 'block';
         document.getElementById('profNameDisplay').textContent = paperData.professor_name;
         document.getElementById('institutionDisplay').textContent = paperData.institution || '';
+      }
+
+      if (paperData.summary) {
+        document.getElementById('summaryBox').style.display = 'block';
+        document.getElementById('summaryContent').textContent = paperData.summary;
       }
 
       document.getElementById('footerNote').textContent = `Answers based on: ${paperData.title}. Always verify critical decisions with the full paper.`;
@@ -302,6 +176,7 @@
     input.value = '';
 
     const fullMessage = message + getContext();
+    const crossPaper = document.getElementById('crossPaperToggle').checked;
 
     addMessage('user', message);
     addMessage('assistant', 'Thinking...');
@@ -310,11 +185,12 @@
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-  message: fullMessage, 
-  paperId,
-  conversationHistory: conversationHistory 
-})
+        body: JSON.stringify({
+          message: fullMessage,
+          paperId,
+          conversationHistory,
+          crossPaper
+        })
       });
       const data = await res.json();
       removeLastMessage();
@@ -333,33 +209,28 @@
     area.appendChild(div);
     area.scrollTop = area.scrollHeight;
     if (content !== 'Thinking...') {
-      conversationHistory.push({
-        role: role === 'user' ? 'user' : 'assistant',
-        content
-      });
+      conversationHistory.push({ role: role === 'user' ? 'user' : 'assistant', content });
     }
   }
-  
 
   function removeLastMessage() {
     const area = document.getElementById('chatArea');
     if (area.lastChild) area.removeChild(area.lastChild);
   }
+
   function exportChat() {
-  const messages = document.querySelectorAll('.message');
-  if (messages.length === 0) {
-    alert('No conversation to export yet.');
-    return;
-  }
+    const messages = document.querySelectorAll('.message');
+    if (messages.length === 0) {
+      alert('No conversation to export yet.');
+      return;
+    }
+    const paperTitle = document.getElementById('welcomeTitle').textContent;
+    const profName = document.getElementById('profNameDisplay')?.textContent || '';
+    const institution = document.getElementById('institutionDisplay')?.textContent || '';
 
-  const paperTitle = document.getElementById('welcomeTitle').textContent;
-  const profName = document.getElementById('profNameDisplay')?.textContent || '';
-  const institution = document.getElementById('institutionDisplay')?.textContent || '';
-
-  let html = `
-    <html>
-    <head>
-      <title>Research Chat Export</title>
+    let html = `
+      <html>
+      <head><title>Research Chat Export</title>
       <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; }
         h1 { color: #1a3a5c; font-size: 20px; margin-bottom: 4px; }
@@ -370,44 +241,39 @@
         .role { font-size: 11px; font-weight: bold; margin-bottom: 4px; opacity: 0.7; }
         .footer { margin-top: 32px; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 12px; }
       </style>
-    </head>
-    <body>
-      <h1>${paperTitle}</h1>
-      <div class="meta">
-        ${profName ? `Shared by ${profName}${institution ? ' · ' + institution : ''}` : ''}
-        · Exported on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-      </div>
-  `;
-
-  messages.forEach(msg => {
-    const isUser = msg.classList.contains('user');
-    const content = msg.querySelector('.message-content')?.innerHTML || '';
-    html += `
-      <div class="message">
-        <div class="role">${isUser ? 'Officer / Student' : 'Research Assistant'}</div>
-        <div class="${isUser ? 'user-msg' : 'assistant-msg'}">${content}</div>
-      </div>
+      </head>
+      <body>
+        <h1>${paperTitle}</h1>
+        <div class="meta">${profName ? `Shared by ${profName}${institution ? ' · ' + institution : ''}` : ''} · Exported on ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
     `;
-  });
 
-  html += `
-      <div class="footer">
-        Answers based on: ${paperTitle}. Always verify critical decisions with the full paper.
-      </div>
-    </body>
-    </html>
-  `;
+    messages.forEach(msg => {
+      const isUser = msg.classList.contains('user');
+      const content = msg.querySelector('.message-content')?.innerHTML || '';
+      html += `
+        <div class="message">
+          <div class="role">${isUser ? 'Officer / Student' : 'Research Assistant'}</div>
+          <div class="${isUser ? 'user-msg' : 'assistant-msg'}">${content}</div>
+        </div>
+      `;
+    });
 
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `research-chat-${Date.now()}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+    html += `
+      <div class="footer">Answers based on: ${paperTitle}. Always verify critical decisions with the full paper.</div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `research-chat-${Date.now()}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   init();
 </script>
-
 </body>
 </html>
