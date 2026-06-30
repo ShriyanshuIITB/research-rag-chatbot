@@ -7,113 +7,49 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; display: flex; flex-direction: column; }
-    
-    .header {
-      background: #1a3a5c;
-      color: white;
-      padding: 20px 32px;
-      text-align: center;
-    }
+    .header { background: #1a3a5c; color: white; padding: 20px 32px; text-align: center; }
     .header h1 { font-size: 22px; font-weight: 600; }
     .header p { font-size: 14px; opacity: 0.75; margin-top: 4px; }
-
-    .container {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 32px;
-    }
-
-    .auth-box {
-      background: white;
-      border-radius: 12px;
-      padding: 40px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    }
-
-    .tabs {
-      display: flex;
-      margin-bottom: 28px;
-      border-bottom: 2px solid #e0e0e0;
-    }
-    .tab {
-      flex: 1;
-      padding: 10px;
-      text-align: center;
-      cursor: pointer;
-      font-size: 15px;
-      font-weight: 500;
-      color: #999;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
-    }
+    .container { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px; }
+    .auth-box { background: white; border-radius: 12px; padding: 40px; width: 100%; max-width: 420px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .tabs { display: flex; margin-bottom: 28px; border-bottom: 2px solid #e0e0e0; }
+    .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 15px; font-weight: 500; color: #999; border-bottom: 2px solid transparent; margin-bottom: -2px; }
     .tab.active { color: #1a3a5c; border-bottom-color: #1a3a5c; }
-
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-size: 13px; font-weight: 500; color: #444; margin-bottom: 6px; }
-    .form-group input {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 14px;
-      outline: none;
-    }
+    .form-group input { width: 100%; padding: 11px 14px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; outline: none; }
     .form-group input:focus { border-color: #1a3a5c; }
-
-    .btn {
-      width: 100%;
-      padding: 12px;
-      background: #1a3a5c;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 15px;
-      font-weight: 500;
-      margin-top: 8px;
-    }
+    .btn { width: 100%; padding: 12px; background: #1a3a5c; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; margin-top: 8px; }
     .btn:hover { background: #15304d; }
-
     .error { color: #dc2626; font-size: 13px; margin-top: 10px; }
     .success { color: #16a34a; font-size: 13px; margin-top: 10px; }
-
     .form-panel { display: none; }
     .form-panel.active { display: block; }
   </style>
 </head>
 <body>
-
 <div class="header">
   <h1>📄 Research Chatbot Platform</h1>
   <p>Upload research papers · Share chatbot links · Help officers make decisions</p>
 </div>
-
 <div class="container">
   <div class="auth-box">
     <div class="tabs">
       <div class="tab active" onclick="switchTab('login')">Login</div>
       <div class="tab" onclick="switchTab('register')">Register</div>
     </div>
-
-    <!-- Login -->
     <div class="form-panel active" id="loginPanel">
       <div class="form-group">
         <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="your@email.com" onkeypress="if(event.key==='Enter') login()">
+        <input type="email" id="loginEmail" placeholder="your@email.com">
       </div>
       <div class="form-group">
         <label>Password</label>
-        <input type="password" id="loginPassword" placeholder="Your password" onkeypress="if(event.key==='Enter') login()">
+        <input type="password" id="loginPassword" placeholder="Your password">
       </div>
-      <button class="btn" onclick="login()">Login to Dashboard</button>
+      <button class="btn" onclick="login()">Login</button>
       <div id="loginMsg"></div>
     </div>
-
-    <!-- Register -->
     <div class="form-panel" id="registerPanel">
       <div class="form-group">
         <label>Full Name</label>
@@ -136,9 +72,7 @@
     </div>
   </div>
 </div>
-
 <script>
-  // If already logged in, redirect to dashboard
   if (localStorage.getItem('professor')) {
     window.location.href = '/dashboard';
   }
@@ -214,6 +148,5 @@
     }
   }
 </script>
-
 </body>
 </html>
