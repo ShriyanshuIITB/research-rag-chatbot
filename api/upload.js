@@ -14,54 +14,25 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // 1. Get the JWT token from Authorization header
+    // 1. Get professor ID from Authorization header
     const auth = req.headers.authorization;
-    const token = auth?.replace('Bearer ', '');
-    if (!token) {
+    const professorId = auth?.replace('Bearer ', '');
+    if (!professorId) {
       return res.status(401).json({ error: 'Missing token' });
     }
 
-    // 2. Get the user from the token (using Supabase Auth)
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData?.user) {
-      return res.status(401).json({ error: 'Invalid token', detail: userError?.message });
-    }
-
-    const userId = userData.user.id;
-
-    // 3. Look up or create the professor record
-    let professorId;
+    // 2. Verify professor exists
     const { data: prof, error: profError } = await supabase
       .from('professors')
       .select('id')
-      .eq('user_id', userId)
+      .eq('id', professorId)
       .maybeSingle();
 
-    if (profError) {
-      return res.status(500).json({ error: 'Professor lookup failed', detail: profError.message });
+    if (profError || !prof) {
+      return res.status(401).json({ error: 'Professor not found' });
     }
 
-    if (prof) {
-      professorId = prof.id;
-    } else {
-      // Create professor if missing
-      const { data: newProf, error: createError } = await supabase
-        .from('professors')
-        .insert({
-          user_id: userId,
-          name: 'Professor',
-          institution: 'Institute'
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        return res.status(500).json({ error: 'Failed to create professor', detail: createError.message });
-      }
-      professorId = newProf.id;
-    }
-
-    // 4. Parse form (file + fields)
+    // 3. Parse form
     const form = formidable({ maxFileSize: 10 * 1024 * 1024, keepExtensions: true });
     const [fields, files] = await form.parse(req);
 
@@ -77,7 +48,7 @@ export default async function handler(req, res) {
     const profName = fields.profName?.[0] || 'Professor';
     const institution = fields.institution?.[0] || '';
 
-    // 5. Parse PDF
+    // 4. Parse PDF
     let fullText = '';
     try {
       const buffer = fs.readFileSync(file.filepath);
@@ -90,7 +61,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'PDF parsing failed', detail: pdfError.message });
     }
 
-    // 6. Insert paper
+    // 5. Insert paper
     const { data: paper, error: insertError } = await supabase
       .from('papers')
       .insert({
@@ -117,14 +88,14 @@ export default async function handler(req, res) {
       });
     }
 
-    // 7. Success
+    // 6. Success
     res.status(200).json({
       success: true,
       paperId: paper.id,
       chatLink: `/chat?id=${paper.id}`,
     });
 
-    // 8. Fire background tasks (process-chunks & generate-summary)
+    // 7. Fire background tasks
     try {
       const edgeUrl = `${process.env.SUPABASE_URL}/functions/v1/process-chunks`;
       await fetch(edgeUrl, {
