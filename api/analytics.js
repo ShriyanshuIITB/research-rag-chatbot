@@ -15,7 +15,6 @@ export default async function handler(req, res) {
   const { professorId } = req.query;
   if (!professorId) return res.status(400).json({ error: 'professorId required' });
 
-  // Get all papers for this professor
   const { data: papers } = await supabase
     .from('papers')
     .select('id, title')
@@ -27,28 +26,36 @@ export default async function handler(req, res) {
 
   const paperIds = papers.map(p => p.id);
 
-  // Get question logs for all papers
   const { data: logs } = await supabase
     .from('question_logs')
     .select('paper_id, question, answered, created_at')
     .in('paper_id', paperIds)
     .order('created_at', { ascending: false });
 
-  // Build analytics per paper
   const analytics = papers.map(paper => {
     const paperLogs = logs?.filter(l => l.paper_id === paper.id) || [];
-    const totalQuestions = paperLogs.length;
-    const answeredQuestions = paperLogs.filter(l => l.answered).length;
-    const unanswered = paperLogs.filter(l => !l.answered).length;
+    const total = paperLogs.length;
+    const answeredCount = paperLogs.filter(l => l.answered).length;
+    const unanswered = total - answeredCount;
+    const freq = {};
+    paperLogs.forEach(l => {
+      freq[l.question] = (freq[l.question] || 0) + 1;
+    });
+    const topQuestions = Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([q, count]) => ({ question: q, count }));
+
     const recentQuestions = paperLogs.slice(0, 5).map(l => l.question);
 
     return {
       paperId: paper.id,
       paperTitle: paper.title,
-      totalQuestions,
-      answeredQuestions,
+      totalQuestions: total,
+      answeredQuestions: answeredCount,
       unanswered,
-      recentQuestions
+      topQuestions,
+      recentQuestions,
     };
   });
 
