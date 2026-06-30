@@ -62,8 +62,6 @@
     .stat-item .label { font-size: 12px; color: #666; }
     .top-questions { margin-top: 8px; }
     .top-questions li { font-size: 13px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; }
-    
-    /* Report Modal */
     .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
     .modal-overlay.active { display: flex; }
     .modal-box { background: white; max-width: 900px; width: 95%; max-height: 90vh; border-radius: 12px; padding: 24px; overflow-y: auto; position: relative; }
@@ -136,14 +134,12 @@
   </div>
 </div>
 
-<!-- Report Modal -->
 <div class="modal-overlay" id="reportModal">
   <div class="modal-box">
     <span class="modal-close" onclick="closeReportModal()">&times;</span>
     <div id="reportContent" class="report-content">
       <div class="loading-spinner">⏳ Generating comprehensive report...</div>
     </div>
-    <!-- Chart will be inserted here by JavaScript -->
     <div id="chartContainer" class="chart-container" style="display:none;">
       <h3 style="color:#1a3a5c; margin-bottom:12px;">📈 Key Findings Chart</h3>
       <canvas id="reportChart"></canvas>
@@ -317,7 +313,6 @@
     const chartContainer = document.getElementById('chartContainer');
     const canvas = document.getElementById('reportChart');
     
-    // Reset previous chart
     if (myChart) {
       myChart.destroy();
       myChart = null;
@@ -335,7 +330,6 @@
       const data = await res.json();
       
       if (data.report) {
-        // Render the markdown-like text
         let html = data.report
           .replace(/\n/g, '<br>')
           .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -343,11 +337,9 @@
           .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
           .replace(/^# (.*?)$/gm, '<h1>$1</h1>');
         
-        // Remove the JSON block from the display if it's there
         html = html.replace(/```json[\s\S]*?```/g, '');
         content.innerHTML = html;
 
-        // Handle chart data
         if (data.chartData && data.chartData.labels && data.chartData.values && data.chartData.labels.length > 0) {
           chartContainer.style.display = 'block';
           const ctx = canvas.getContext('2d');
