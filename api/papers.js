@@ -12,11 +12,10 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Get single paper by ID
   if (req.query.id) {
     const { data, error } = await supabase
       .from('papers')
-      .select('id, title, filename, description, enable_context, quick_questions, professor_name, institution, professor_id, processed, created_at')
+      .select('id, title, description, summary, professor_name, institution, enable_context, quick_questions, processed, created_at')
       .eq('id', req.query.id)
       .single();
 
@@ -24,16 +23,14 @@ export default async function handler(req, res) {
     return res.status(200).json({ paper: data });
   }
 
-  // Get papers filtered by professor
   const professorId = req.query.professorId;
-
   if (!professorId) {
-    return res.status(400).json({ error: 'professorId is required' });
+    return res.status(400).json({ error: 'professorId required' });
   }
 
   const { data, error } = await supabase
     .from('papers')
-    .select('id, title, description, professor_name, institution, processed, created_at')
+    .select('id, title, description, summary, professor_name, institution, processed, created_at')
     .eq('professor_id', professorId)
     .order('created_at', { ascending: false });
 
