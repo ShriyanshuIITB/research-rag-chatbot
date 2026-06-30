@@ -14,15 +14,20 @@ export default async function handler(req, res) {
 
   const auth = req.headers.authorization;
   const token = auth?.replace('Bearer ', '');
-  const isAdminPassword = token === process.env.ADMIN_PASSWORD;
-  const isValidProfessor = token && token.length === 36 && token.includes('-');
-
-  if (!isAdminPassword && !isValidProfessor) {
-    return res.status(401).json({ error: 'Unauthorized' });
-}
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
   const { paperId } = req.body;
   if (!paperId) return res.status(400).json({ error: 'Paper ID required' });
+
+  const { data: paper, error: findError } = await supabase
+    .from('papers')
+    .select('professor_id')
+    .eq('id', paperId)
+    .single();
+
+  if (findError || paper.professor_id !== token) {
+    return res.status(403).json({ error: 'Not authorized to delete this paper' });
+  }
 
   const { error } = await supabase
     .from('papers')
