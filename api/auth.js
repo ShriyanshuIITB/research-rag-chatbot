@@ -12,74 +12,84 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action, name, institution, email, password } = req.body;
+  const { action, email, password, name, institution } = req.body;
 
-  // REGISTER
   if (action === 'register') {
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email and password are required' });
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: 'Missing fields' });
     }
 
-    // Check if email already exists
-    const { data: existing } = await supabase
-      .from('professors')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .single();
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-    if (existing) {
-      return res.status(400).json({ error: 'Email already registered' });
+    if (authError) {
+      return res.status(400).json({ error: authError.message });
     }
 
-    const { data: professor, error } = await supabase
+    const userId = authData.user.id;
+
+    const { data: prof, error: profError } = await supabase
       .from('professors')
       .insert({
+        user_id: userId,
         name,
         institution: institution || '',
-        email: email.toLowerCase(),
-        password
       })
       .select()
       .single();
 
-    if (error) return res.status(500).json({ error: error.message });
+    if (profError) {
+      await supabase.auth.admin.deleteUser(userId);
+      return res.status(500).json({ error: profError.message });
+    }
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       professor: {
-        id: professor.id,
-        name: professor.name,
-        institution: professor.institution,
-        email: professor.email
-      }
+        id: prof.id,
+        name: prof.name,
+        institution: prof.institution,
+        email: authData.user.email,
+      },
     });
   }
 
-  // LOGIN
   if (action === 'login') {
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ error: 'Email and password required' });
     }
 
-    const { data: professor, error } = await supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const userId = authData.user.id;
+
+    const { data: prof, error: profError } = await supabase
       .from('professors')
-      .select('id, name, institution, email')
-      .eq('email', email.toLowerCase())
-      .eq('password', password)
+      .select('id, name, institution')
+      .eq('user_id', userId)
       .single();
 
-    if (error || !professor) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+    if (profError || !prof) {
+      return res.status(404).json({ error: 'Professor profile not found' });
     }
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
       professor: {
-        id: professor.id,
-        name: professor.name,
-        institution: professor.institution,
-        email: professor.email
-      }
+        id: prof.id,
+        name: prof.name,
+        institution: prof.institution,
+        email: authData.user.email,
+      },
     });
   }
 
