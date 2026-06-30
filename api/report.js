@@ -79,8 +79,6 @@ If no chart data is found, output:
     if (!groqRes.ok) throw new Error(groqData.error?.message || 'Groq error');
 
     let report = groqData.choices?.[0]?.message?.content || 'Could not generate report.';
-
-    // Try to extract chart_data from the response
     let chartData = null;
     try {
       const jsonMatch = report.match(/\{[\s\S]*"chart_data"[\s\S]*\}/);
