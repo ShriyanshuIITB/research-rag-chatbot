@@ -101,7 +101,6 @@ export default async function handler(req, res) {
       } else if (paper.full_text) {
         context = paper.full_text.slice(0, 8000);
       } else {
-        // No context found -> low confidence
         await supabase.from('question_logs').insert({
           paper_id: paperId,
           question: message,
@@ -112,7 +111,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // If context is very short, it might be low quality
     const contextWordCount = context.split(' ').length;
     const isLowConfidence = contextWordCount < 50 || chunks.length < 2;
 
@@ -155,15 +153,13 @@ ${context}`
 
     const reply = groqData.choices?.[0]?.message?.content || 'No response.';
 
-    // Calculate confidence based on reply quality and context
-    let confidence = 0.9; // default high
+    let confidence = 0.9;
     if (reply.includes('could not find') || reply.includes('outside the scope') || reply.includes('not available')) {
       confidence = 0.2;
     } else if (isLowConfidence || reply.length < 50) {
       confidence = 0.5;
     }
 
-    // Log the question with confidence score
     await supabase.from('question_logs').insert({
       paper_id: paperId,
       question: message,
