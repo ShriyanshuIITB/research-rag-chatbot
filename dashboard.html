@@ -243,6 +243,7 @@
 </div>
 
 <script>
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsd3ZrYXBqYWR0b25od2ZvcWNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MzE4NTcsImV4cCI6MjA5ODIwNzg1N30.hlZV0tr7wv8nWRFQMeWq2P-h73uO2ERMxug3A_HEuCI';
   let professor = null;
 
   function init() {
@@ -318,18 +319,38 @@
 
       const data = await res.json();
 
-      if (data.success || data.paperId) {
+      if (data.success && data.paperId) {
         const link = `${window.location.origin}/chat?id=${data.paperId}`;
-        status.innerHTML = `<div class="status success">✓ Paper uploaded! Chatbot is being processed in background.</div>`;
         document.getElementById('chatLinkText').textContent = link;
         document.getElementById('generatedLink').style.display = 'block';
+        status.innerHTML = `<div class="status loading">⏳ Paper saved! Now processing chunks (1-3 min)... do not close this tab.</div>`;
+        loadPapers();
+
+        try {
+          const chunkRes = await fetch('https://blwvkapjadtonhwfoqco.supabase.co/functions/v1/process-chunks', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({ paperId: data.paperId, text: data.extractedText })
+          });
+          const chunkData = await chunkRes.json();
+          if (chunkData.success) {
+            status.innerHTML = `<div class="status success">✓ Fully processed! ${chunkData.chunks} chunks ready. Chatbot is live and complete.</div>`;
+          } else {
+            status.innerHTML = `<div class="status error">Chunking failed: ${chunkData.error || 'unknown error'}</div>`;
+          }
+        } catch (chunkErr) {
+          status.innerHTML = `<div class="status error">Chunking request failed: ${chunkErr.message}</div>`;
+        }
+
         loadPapers();
       } else {
         status.innerHTML = `<div class="status error">Error: ${data.error}</div>`;
       }
     } catch(e) {
-      status.innerHTML = '<div class="status success">⚠️ Upload likely succeeded! Check your papers below.</div>';
-      setTimeout(() => loadPapers(), 3000);
+      status.innerHTML = `<div class="status error">Upload failed: ${e.message}</div>`;
     }
   }
 
